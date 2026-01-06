@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+}
+
+@layer components {
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+        height: 4px;
+        /* For horizontal scroll */
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #1a1a1a;
+        border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #22c55e;
+    }
+
+    /* No Scrollbar Utility for smooth mobile-like scrolling */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+}
+
+/* Hide Generic Warning Banners often injected by tools */
+#webpack-dev-server-client-overlay,
+.ngrok-warning,
+iframe[src*="ngrok"],
+div[style*="background-color: #dbf0f1"],
+div[style*="background-color: rgb(219, 240, 241)"],
+div[style*="color: white; background-color: rgb(204, 0, 0)"],
+div[style*="background-color: #cc0000"] {
+    display: none !important;
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    /* Let app-root handle scrolling */
+}

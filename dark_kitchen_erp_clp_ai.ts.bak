@@ -1,0 +1,378 @@
+import { ChangeDetectionStrategy, Component, computed, signal, input } from '@angular/core';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+import { 
+    getFirestore, collection, onSnapshot, Firestore
+} from 'firebase/firestore';
+
+/**
+ * SENTINEL ERP - DARK KITCHEN EDITION
+ * Versión optimizada para exportación y uso con IA.
+ */
+
+// --- CONFIGURACIÓN DE ENTORNO ---
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'dark-kitchen-erp-clp';
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+// NOTA: Debes insertar tu API Key de Google AI Studio para que Sentinel IA funcione
+const apiKey = ""; 
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+const LOW_STOCK_THRESHOLD = 10; 
+
+// --- FUNCIONES UTILITARIAS ---
+
+const formatCLP = (number: number | null | undefined): string => {
+    const num = Math.round(parseFloat(String(number) || '0') || 0);
+    return new Intl.NumberFormat('es-CL', {
+        style: 'currency',
+        currency: 'CLP',
+        minimumFractionDigits: 0
+    }).format(num);
+};
+
+const fetchWithRetry = async (url: string, options: RequestInit, maxRetries = 5): Promise<any> => {
+    let delay = 1000;
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const response = await fetch(url, options);
+            if (response.ok) return await response.json();
+            if (response.status !== 429 && response.status < 500) break;
+        } catch (e) {}
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2;
+    }
+    throw new Error("Error de red");
+};
+
+// --- ESTRUCTURAS DE DATOS ---
+interface Sale { id: string; amount: number; description?: string; date?: any; }
+interface Expense { id: string; amount: number; description?: string; category?: string; }
+interface InventoryItem { id: string; name: string; quantity: number; unitCost: number; }
+
+// --- COMPONENTE: ICONOS ---
+@Component({
+    selector: 'lucide-icon',
+    standalone: true,
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    template: `<svg [innerHTML]="IconSvg" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" [class]="class()"></svg>`
+})
+class LucideIconComponent {
+    name = input.required<string>();
+    class = input<string>('w-5 h-5');
+    private iconSvgMap: { [key: string]: string } = {
+        'home': `<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>`,
+        'trending-up': `<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>`,
+        'wallet': `<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h14a1 1 0 0 1 1 1v3h-2a2 2 0 0 0 0 4h2v3a1 1 0 0 0 1 1h2v-4h-2a1 1 0 0 1-1-1V8a1 1 0 0 0-1-1z"/>`,
+        'package': `<path d="M12.89 2.16L21 6.34V17.66L12.89 21.84L4 17.66V6.34L12.89 2.16Z"/><path d="M12 22V12"/><path d="M21 6.34L12 12L3 6.34"/><path d="M17 9.5L12 12.5L7 9.5"/>`,
+        'alert-triangle': `<path d="M10.29 3.86L1.82 18.99A2 2 0 0 0 3.6 22h16.8a2 2 0 0 0 1.77-3.01L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>`,
+        'send': `<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>`,
+        'cpu': `<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>`,
+    };
+    get IconSvg(): string { return this.iconSvgMap[this.name()] || ''; }
+}
+
+// --- COMPONENTE: ASISTENTE SENTINEL IA ---
+@Component({
+    selector: 'app-ai-assistant',
+    standalone: true,
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    template: `
+        <div class="p-6 rounded-xl border border-green-500/20 bg-gray-900/60 flex flex-col h-full min-h-[460px] shadow-2xl backdrop-blur-sm">
+            <h4 class="text-lg font-bold text-green-400 mb-4 flex items-center justify-between border-b border-gray-800 pb-3">
+                <span class="flex items-center">
+                    <lucide-icon name="cpu" class="w-5 h-5 mr-2 animate-pulse"></lucide-icon> Sentinel Core IA
+                </span>
+                <span class="text-[10px] bg-green-950/50 px-2 py-1 rounded text-green-300 font-mono">v2.5_ACTIVE</span>
+            </h4>
+            
+            <div class="flex-grow p-4 bg-black/40 rounded-lg overflow-y-auto mb-4 border border-gray-800/50 text-sm">
+                @if (isThinking()) {
+                    <div class="flex flex-col items-center justify-center h-full space-y-4">
+                        <div class="w-12 h-12 relative">
+                            <div class="absolute inset-0 border-2 border-green-500/10 rounded-full"></div>
+                            <div class="absolute inset-0 border-t-2 border-green-500 rounded-full animate-spin"></div>
+                        </div>
+                        <p class="text-green-500 font-mono text-[10px] tracking-widest uppercase">Analizando Núcleo...</p>
+                    </div>
+                } @else {
+                    <div class="text-gray-300 whitespace-pre-wrap leading-relaxed font-light">{{ response() }}</div>
+                }
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 mb-4">
+                <button (click)="generateAction('report')" class="text-[10px] bg-blue-900/10 hover:bg-blue-800/30 border border-blue-500/20 py-2.5 rounded-lg text-blue-300 transition-all active:scale-95">REPORTE</button>
+                <button (click)="generateAction('stock')" class="text-[10px] bg-yellow-900/10 hover:bg-yellow-800/30 border border-yellow-500/20 py-2.5 rounded-lg text-yellow-300 transition-all active:scale-95">STOCKS</button>
+                <button (click)="generateAction('predict')" class="text-[10px] bg-purple-900/10 hover:bg-purple-800/30 border border-purple-500/20 py-2.5 rounded-lg text-purple-300 transition-all active:scale-95">PROYECTAR</button>
+            </div>
+
+            <div class="flex space-x-2">
+                <input #queryInput type="text" 
+                    class="flex-grow p-3 rounded-lg border border-gray-800 bg-black/50 text-green-200 text-sm focus:border-green-500 outline-none transition-colors" 
+                    placeholder="Escribir comando..." 
+                    (keyup.enter)="handleAsk(queryInput.value); queryInput.value=''" />
+                <button (click)="handleAsk(queryInput.value); queryInput.value=''" 
+                    class="bg-green-600 hover:bg-green-700 px-4 rounded-lg text-white transition-all hover:shadow-[0_0_15px_rgba(22,163,74,0.4)] disabled:opacity-50">
+                    <lucide-icon name="send" class="w-4 h-4"></lucide-icon>
+                </button>
+            </div>
+        </div>
+    `,
+    imports: [LucideIconComponent]
+})
+class AiAssistantComponent {
+    metrics = input.required<any>();
+    response = signal("SISTEMA LISTO. Ingrese una consulta sobre el estado de la Dark Kitchen o utilice los accesos rápidos de análisis.");
+    isThinking = signal(false);
+
+    async callGemini(prompt: string, system: string) {
+        if (!apiKey) {
+            this.response.set("ERROR: API Key no configurada. Por favor, agregue su clave de Google AI Studio en el código.");
+            return;
+        }
+        if (this.isThinking()) return;
+        this.isThinking.set(true);
+        try {
+            const res = await fetchWithRetry(GEMINI_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    systemInstruction: { parts: [{ text: system }] }
+                })
+            });
+            const text = res.candidates?.[0]?.content?.parts?.[0]?.text;
+            this.response.set(text || "Error: El núcleo devolvió una respuesta vacía.");
+        } catch (e) {
+            this.response.set("FALLO DE CONEXIÓN: No se pudo contactar con Sentinel Core. Verifique su API Key.");
+        } finally {
+            this.isThinking.set(false);
+        }
+    }
+
+    handleAsk(val: string) {
+        if (!val.trim()) return;
+        const m = this.metrics();
+        const context = `Métricas Actuales: Ingresos ${formatCLP(m.totalRevenue)}, Egresos ${formatCLP(m.totalExpenses)}, Margen ${formatCLP(m.netProfit)}.`;
+        this.callGemini(`${context}\nUsuario: ${val}`, "Eres Sentinel IA, el sistema de gestión avanzado para Dark Kitchens en Chile. Tus respuestas deben ser técnicas, breves y orientadas a la optimización de costos.");
+    }
+
+    generateAction(type: string) {
+        const m = this.metrics();
+        let prompt = "";
+        if (type === 'report') prompt = `Analiza: Ventas ${m.totalRevenue} vs Gastos ${m.totalExpenses}. Diagnóstico de salud financiera.`;
+        else if (type === 'stock') prompt = `Productos críticos: ${m.lowStockItems.map((i:any) => i.name).join(", ") || 'Ninguno'}. Plan de reposición.`;
+        else prompt = `Ingresos ${m.totalRevenue}. Proyección de rentabilidad a 30 días.`;
+        
+        this.callGemini(prompt, "Analista Financiero Sentinel. Formato ejecutivo.");
+    }
+}
+
+// --- COMPONENTE: PANEL PRINCIPAL (DASHBOARD) ---
+@Component({
+    selector: 'app-dashboard',
+    standalone: true,
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    template: `
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <!-- KPIs Dinámicos -->
+            <div class="lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="p-6 rounded-2xl border border-green-500/20 bg-gray-900/40 backdrop-blur-xl group hover:border-green-500/40 transition-all">
+                    <h4 class="text-[11px] text-gray-500 font-bold uppercase tracking-[0.2em] mb-2">Utilidad Operativa</h4>
+                    <p class="text-3xl font-black tracking-tight" [class.text-green-400]="metrics().netProfit >= 0" [class.text-red-400]="metrics().netProfit < 0">
+                        {{ formatCLP(metrics().netProfit) }}
+                    </p>
+                    <div class="mt-2 h-1 w-full bg-gray-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-green-500" [style.width.%]="75"></div>
+                    </div>
+                </div>
+                
+                <div class="p-6 rounded-2xl border border-blue-500/20 bg-gray-900/40 backdrop-blur-xl">
+                    <h4 class="text-[11px] text-gray-500 font-bold uppercase tracking-[0.2em] mb-2">Ventas Brutas</h4>
+                    <p class="text-2xl font-bold text-blue-400">{{ formatCLP(metrics().totalRevenue) }}</p>
+                </div>
+
+                <div class="p-6 rounded-2xl border border-red-500/20 bg-gray-900/40 backdrop-blur-xl">
+                    <h4 class="text-[11px] text-gray-500 font-bold uppercase tracking-[0.2em] mb-2">Gastos Totales</h4>
+                    <p class="text-2xl font-bold text-red-400">{{ formatCLP(metrics().totalExpenses) }}</p>
+                </div>
+
+                <!-- Alertas de Stock -->
+                <div class="md:col-span-3 p-8 rounded-2xl border border-yellow-500/20 bg-gray-900/40">
+                    <div class="flex justify-between items-center mb-6">
+                        <h4 class="text-xl font-black text-yellow-400 flex items-center tracking-tighter uppercase italic">
+                            <lucide-icon name="alert-triangle" class="w-6 h-6 mr-2"></lucide-icon> Quiebre de Stock
+                        </h4>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        @for (item of metrics().lowStockItems; track item.id) {
+                            <div class="flex flex-col p-4 bg-yellow-950/20 border border-yellow-500/10 rounded-xl hover:bg-yellow-950/30 transition-colors">
+                                <span class="text-yellow-100 font-bold text-sm mb-1 uppercase">{{ item.name }}</span>
+                                <div class="flex justify-between items-baseline">
+                                    <span class="text-xs text-yellow-500/70">Quedan:</span>
+                                    <span class="text-lg font-mono text-yellow-500">{{ item.quantity }}</span>
+                                </div>
+                            </div>
+                        } @empty {
+                            <div class="sm:col-span-3 text-center py-10 text-gray-600 border border-dashed border-gray-800 rounded-2xl font-mono text-xs">
+                                ESCANEO DE INVENTARIO COMPLETO: SIN ALERTAS CRÍTICAS.
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna IA -->
+            <div class="lg:col-span-4">
+                <app-ai-assistant [metrics]="metrics()" />
+            </div>
+        </div>
+    `,
+    imports: [LucideIconComponent, AiAssistantComponent]
+})
+class DashboardComponent {
+    metrics = input.required<any>();
+    formatCLP = formatCLP;
+}
+
+// --- APP ROOT (PUNTO DE ENTRADA) ---
+@Component({
+    selector: 'app-root',
+    standalone: true,
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    template: `
+        <div class="min-h-screen bg-[#050505] text-gray-100 selection:bg-green-500/40 font-sans">
+            <!-- Navbar de Cristal -->
+            <header class="h-20 border-b border-gray-900 bg-black/80 backdrop-blur-2xl flex items-center justify-between px-8 sticky top-0 z-50">
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center shadow-[0_0_30px_rgba(22,163,74,0.4)] transform rotate-3">
+                        <lucide-icon name="cpu" class="text-white w-6 h-6"></lucide-icon>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-black tracking-tighter uppercase leading-none">Sentinel <span class="text-green-500">CLP</span></h1>
+                        <p class="text-[9px] font-mono text-gray-500 tracking-[0.3em] uppercase">Dark Kitchen Intelligence</p>
+                    </div>
+                </div>
+                
+                <div class="hidden md:flex items-center space-x-6">
+                    <div class="text-right">
+                        <div class="text-[10px] font-mono text-green-500/60 uppercase">Estado Nodo</div>
+                        <div class="text-xs font-bold text-green-400">{{ userId() ? 'AUTORIZADO' : 'CONECTANDO...' }}</div>
+                    </div>
+                    <div class="w-10 h-10 rounded-full border border-gray-800 bg-gray-900 flex items-center justify-center text-xs font-bold text-gray-400">
+                        {{ (userId() || 'U').substring(0,2).toUpperCase() }}
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex flex-col lg:flex-row">
+                <!-- Sidebar Táctica -->
+                <nav class="lg:w-24 border-r border-gray-900 p-6 flex lg:flex-col lg:h-[calc(100vh-80px)] space-x-4 lg:space-x-0 lg:space-y-6 bg-black">
+                    <button (click)="activeView.set('dashboard')" 
+                        [class]="'flex items-center justify-center w-full aspect-square rounded-2xl transition-all duration-300 ' + (activeView() === 'dashboard' ? 'bg-green-600 text-white shadow-lg shadow-green-900/20 scale-105' : 'text-gray-700 hover:bg-gray-900 hover:text-gray-300')">
+                        <lucide-icon name="home" class="w-7 h-7"></lucide-icon>
+                    </button>
+                    <button class="flex items-center justify-center w-full aspect-square rounded-2xl text-gray-800 cursor-not-allowed border border-dashed border-gray-900">
+                        <lucide-icon name="package" class="w-7 h-7"></lucide-icon>
+                    </button>
+                    <button class="flex items-center justify-center w-full aspect-square rounded-2xl text-gray-800 cursor-not-allowed border border-dashed border-gray-900">
+                        <lucide-icon name="wallet" class="w-7 h-7"></lucide-icon>
+                    </button>
+                </nav>
+
+                <!-- Área de Operaciones -->
+                <main class="flex-grow p-8 lg:h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar">
+                    @if (loading()) {
+                        <div class="flex flex-col items-center justify-center h-full">
+                            <div class="w-12 h-12 border-4 border-green-500/10 border-t-green-500 rounded-full animate-spin shadow-[0_0_20px_rgba(34,197,94,0.2)]"></div>
+                            <p class="mt-6 text-[11px] font-mono text-gray-500 tracking-widest uppercase animate-pulse">Cargando módulos tácticos...</p>
+                        </div>
+                    } @else {
+                        @if (activeView() === 'dashboard') {
+                            <app-dashboard [metrics]="metrics()" />
+                        }
+                    }
+                </main>
+            </div>
+        </div>
+    `,
+    imports: [LucideIconComponent, DashboardComponent],
+    styles: [`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1a1a1a; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #22c55e; }
+    `]
+})
+export class App {
+    userId = signal<string | null>(null);
+    loading = signal(true);
+    activeView = signal('dashboard');
+    
+    // Señales de Estado (Datos de Firestore)
+    sales = signal<Sale[]>([]);
+    expenses = signal<Expense[]>([]);
+    inventory = signal<InventoryItem[]>([]);
+
+    // Computación de Métricas en Tiempo Real
+    metrics = computed(() => {
+        const totalRevenue = this.sales().reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        const totalExpenses = this.expenses().reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        const lowStockItems = this.inventory().filter(item => (Number(item.quantity) || 0) < LOW_STOCK_THRESHOLD);
+        return { totalRevenue, totalExpenses, netProfit: totalRevenue - totalExpenses, lowStockItems };
+    });
+
+    constructor() {
+        this.initFirebase();
+    }
+
+    private async initFirebase() {
+        if (!firebaseConfig) {
+            this.loading.set(false);
+            console.warn("Firestore config missing. Usando modo offline.");
+            return;
+        }
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            // Regla de Oro: Auth -> Firestore
+            if (initialAuthToken) {
+                await signInWithCustomToken(auth, initialAuthToken).catch(async () => await signInAnonymously(auth));
+            } else {
+                await signInAnonymously(auth);
+            }
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    this.userId.set(user.uid);
+                    this.startRealtimeSync(db);
+                    this.loading.set(false);
+                }
+            });
+        } catch (e) {
+            console.error("Firebase Critical Error", e);
+            this.loading.set(false);
+        }
+    }
+
+    private startRealtimeSync(db: Firestore) {
+        // Rutas dinámicas según estructura obligatoria /artifacts/{appId}/public/data/
+        const getPath = (col: string) => `artifacts/${appId}/public/data/${col}`;
+        
+        onSnapshot(collection(db, getPath('sales')), (snap) => {
+            this.sales.set(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Sale[]);
+        }, (err) => console.error("Sales Error", err));
+
+        onSnapshot(collection(db, getPath('expenses')), (snap) => {
+            this.expenses.set(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Expense[]);
+        }, (err) => console.error("Expenses Error", err));
+
+        onSnapshot(collection(db, getPath('inventory')), (snap) => {
+            this.inventory.set(snap.docs.map(d => ({ id: d.id, ...d.data() })) as InventoryItem[]);
+        }, (err) => console.error("Inventory Error", err));
+    }
+}
