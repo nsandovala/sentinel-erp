@@ -9,6 +9,7 @@ import { CartWidgetComponent } from './components/cart-widget/cart-widget.compon
 import { CheckoutComponent } from './components/checkout/checkout.component';
 import { OrderStatusComponent } from './components/order-status/order-status.component';
 import { ShopService } from './services/shop.service';
+import { LucideIconComponent } from '../../shared/components/lucide-icon.component';
 import { LucideAngularModule, ShoppingCart, MessageCircle, X, Plus, Minus, Search, Menu, CheckCircle, Truck, CreditCard, Wallet, ChevronRight } from 'lucide-angular';
 
 const routes: Routes = [
@@ -18,17 +19,16 @@ const routes: Routes = [
 ];
 
 @NgModule({
-    declarations: [
+    imports: [
+        CommonModule,
+        FormsModule,
         ShopComponent,
         ProductCardComponent,
         CartWidgetComponent,
         CheckoutComponent,
-        OrderStatusComponent
-    ],
-    imports: [
-        CommonModule,
-        FormsModule,
+        OrderStatusComponent,
         ChatbotWidgetComponent, // Chatbot is standalone
+        LucideIconComponent, // Shared Icon Component is standalone
         RouterModule.forChild(routes),
         LucideAngularModule.pick({ ShoppingCart, MessageCircle, X, Plus, Minus, Search, Menu, CheckCircle, Truck, CreditCard, Wallet, ChevronRight })
     ],

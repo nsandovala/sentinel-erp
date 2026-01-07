@@ -2,9 +2,13 @@ import { Component, Output, EventEmitter } from '@angular/core';
 import { Router } from '@angular/router';
 import { ShopService, CartItem } from '../../services/shop.service';
 import { Observable } from 'rxjs';
+import { CommonModule } from '@angular/common';
+import { LucideIconComponent } from '../../../../shared/components/lucide-icon.component';
 
 @Component({
   selector: 'app-cart-widget',
+  standalone: true,
+  imports: [CommonModule, LucideIconComponent],
   template: `
     <div class="fixed inset-0 z-50 flex justify-end">
       <!-- Backdrop -->

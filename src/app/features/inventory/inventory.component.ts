@@ -4,14 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { LucideIconComponent } from '../../shared/components/lucide-icon.component';
 import { ClpPipe } from '../../shared/pipes/clp.pipe';
 import { InventoryService } from './services/inventory.service';
-import { ShopService, Product } from '../shop/services/shop.service';
+
+import { ShopService } from '../shop/services/shop.service';
+import { Product } from '../../data/catalog.tbb';
 import { Observable } from 'rxjs';
 
 @Component({
-    selector: 'app-inventory',
-    standalone: true,
-    imports: [CommonModule, FormsModule, LucideIconComponent, ClpPipe, AsyncPipe],
-    template: `
+  selector: 'app-inventory',
+  standalone: true,
+  imports: [CommonModule, FormsModule, LucideIconComponent, ClpPipe, AsyncPipe],
+  template: `
     <div class="p-6 bg-gray-900/40 border border-gray-800 rounded-2xl h-full flex flex-col">
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-xl font-bold text-gray-200 flex items-center gap-3">
@@ -21,30 +23,23 @@ import { Observable } from 'rxjs';
         </h2>
         
         <div class="flex items-center gap-4">
-          <!-- Tab Switcher -->
           <div class="flex bg-black/40 rounded-lg p-1 border border-white/10">
-            <button (click)="activeTab = 'ingredients'" 
-                    [class.bg-yellow-600/20]="activeTab === 'ingredients'"
+            <button type="button" (click)="activeTab = 'ingredients'" 
+                    [class.bg-yellow-600_20]="activeTab === 'ingredients'"
                     [class.text-yellow-500]="activeTab === 'ingredients'"
                     class="px-4 py-1.5 rounded-md text-xs font-bold transition-all text-gray-400 hover:text-white">
               Insumos
             </button>
-            <button (click)="activeTab = 'products'" 
-                    [class.bg-[#22c55e]/20]="activeTab === 'products'"
-                    [class.text-[#22c55e]]="activeTab === 'products'"
+            <button type="button" (click)="activeTab = 'products'" 
+                    [class.bg-green-600_20]="activeTab === 'products'"
+                    [class.text-green-500]="activeTab === 'products'"
                     class="px-4 py-1.5 rounded-md text-xs font-bold transition-all text-gray-400 hover:text-white">
               Productos
             </button>
           </div>
 
-          <button (click)="openAddModal()" 
-                  [class.text-yellow-500]="activeTab === 'ingredients'"
-                  [class.border-yellow-500/50]="activeTab === 'ingredients'"
-                  [class.bg-yellow-600/20]="activeTab === 'ingredients'"
-                  [class.text-[#22c55e]]="activeTab === 'products'"
-                  [class.border-[#22c55e]/50]="activeTab === 'products'"
-                  [class.bg-[#22c55e]/20]="activeTab === 'products'"
-                  class="px-4 py-2 border rounded-lg text-sm transition-colors flex items-center font-bold">
+          <button type="button" (click)="openAddModal()" 
+                  class="px-4 py-2 border rounded-lg text-sm transition-colors flex items-center font-bold text-gray-200 border-gray-700 hover:bg-gray-800">
             <lucide-icon name="plus" class="w-4 h-4 mr-1"></lucide-icon> Nuevo {{ activeTab === 'ingredients' ? 'Insumo' : 'Producto' }}
           </button>
         </div>
@@ -121,23 +116,23 @@ import { Observable } from 'rxjs';
       </div>
     </div>
   `,
-    styles: [`
+  styles: [`
     .animate-fade-in { animation: fadeIn 0.3s ease-out; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   `]
 })
 export class InventoryComponent {
-    inventoryService = inject(InventoryService);
-    shopService = inject(ShopService);
+  inventoryService = inject(InventoryService);
+  shopService = inject(ShopService);
 
-    activeTab: 'ingredients' | 'products' = 'ingredients';
-    products$: Observable<Product[]>;
+  activeTab: 'ingredients' | 'products' = 'ingredients';
+  products$: Observable<Product[]>;
 
-    constructor() {
-        this.products$ = this.shopService.getProducts();
-    }
+  constructor() {
+    this.products$ = this.shopService.getProducts();
+  }
 
-    openAddModal() {
-        alert('Esta funcionalidad abriría el modal de "Agregar ' + (this.activeTab === 'ingredients' ? 'Insumo' : 'Producto') + '"');
-    }
+  openAddModal() {
+    alert('Esta funcionalidad abriría el modal de "Agregar ' + (this.activeTab === 'ingredients' ? 'Insumo' : 'Producto') + '"');
+  }
 }

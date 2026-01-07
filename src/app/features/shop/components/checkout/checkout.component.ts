@@ -1,11 +1,16 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
-import { ShopService, CartItem } from '../services/shop.service';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { LucideIconComponent } from '../../../../shared/components/lucide-icon.component';
+import { ShopService, CartItem } from '../../services/shop.service';
 import { Observable } from 'rxjs';
 
 @Component({
-    selector: 'app-checkout',
-    template: `
+  selector: 'app-checkout',
+  standalone: true,
+  imports: [CommonModule, FormsModule, LucideIconComponent],
+  template: `
     <div class="min-h-screen bg-[#121212] pt-24 px-4 pb-12 font-sans text-white">
       <div class="container mx-auto max-w-2xl">
         <h2 class="text-3xl font-bold mb-8 flex items-center gap-3">
@@ -38,16 +43,12 @@ import { Observable } from 'rxjs';
             <h3 class="text-lg font-bold mb-4 text-[#22c55e]">2. Entrega</h3>
             <div class="flex gap-4">
               <button (click)="deliveryMethod = 'pickup'" 
-                      [class.bg-[#22c55e]]="deliveryMethod === 'pickup'"
-                      [class.text-black]="deliveryMethod === 'pickup'"
-                      [class.bg-white/5]="deliveryMethod !== 'pickup'"
+                      [ngClass]="{'bg-[#22c55e] text-black': deliveryMethod === 'pickup', 'bg-white/5': deliveryMethod !== 'pickup'}"
                       class="flex-1 py-3 rounded-xl border border-white/10 font-bold transition-all text-center">
                 Retiro en Local
               </button>
               <button (click)="deliveryMethod = 'delivery'" 
-                      [class.bg-[#22c55e]]="deliveryMethod === 'delivery'"
-                      [class.text-black]="deliveryMethod === 'delivery'"
-                      [class.bg-white/5]="deliveryMethod !== 'delivery'"
+                      [ngClass]="{'bg-[#22c55e] text-black': deliveryMethod === 'delivery', 'bg-white/5': deliveryMethod !== 'delivery'}"
                       class="flex-1 py-3 rounded-xl border border-white/10 font-bold transition-all text-center">
                 Delivery
               </button>
@@ -82,7 +83,7 @@ import { Observable } from 'rxjs';
               <button (click)="paymentMethod = 'transfer'" 
                       class="w-full p-4 rounded-xl border border-white/10 flex items-center justify-between hover:border-[#22c55e] transition-all group">
                 <div class="flex items-center gap-3">
-                  <div [class.bg-[#22c55e]]="paymentMethod === 'transfer'" class="w-4 h-4 rounded-full border border-gray-500 group-hover:border-[#22c55e]"></div>
+                  <div [ngClass]="{'bg-[#22c55e]': paymentMethod === 'transfer'}" class="w-4 h-4 rounded-full border border-gray-500 group-hover:border-[#22c55e]"></div>
                   <span>Transferencia Bancaria</span>
                 </div>
                 <lucide-icon name="credit-card" class="text-gray-500"></lucide-icon>
@@ -90,7 +91,7 @@ import { Observable } from 'rxjs';
                <button (click)="paymentMethod = 'cash'" 
                       class="w-full p-4 rounded-xl border border-white/10 flex items-center justify-between hover:border-[#22c55e] transition-all group">
                 <div class="flex items-center gap-3">
-                  <div [class.bg-[#22c55e]]="paymentMethod === 'cash'" class="w-4 h-4 rounded-full border border-gray-500 group-hover:border-[#22c55e]"></div>
+                  <div [ngClass]="{'bg-[#22c55e]': paymentMethod === 'cash'}" class="w-4 h-4 rounded-full border border-gray-500 group-hover:border-[#22c55e]"></div>
                   <span>Pago al recibir (Efectivo/Tarjeta)</span>
                 </div>
                  <lucide-icon name="wallet" class="text-gray-500"></lucide-icon>
@@ -111,43 +112,43 @@ import { Observable } from 'rxjs';
       </div>
     </div>
   `,
-    styles: [`
+  styles: [`
     .animate-fade-in { animation: fadeIn 0.3s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
   `]
 })
 export class CheckoutComponent {
-    cart$: Observable<CartItem[]>;
+  cart$: Observable<CartItem[]>;
 
-    deliveryMethod: 'pickup' | 'delivery' = 'pickup';
-    paymentMethod: 'transfer' | 'cash' = 'transfer';
+  deliveryMethod: 'pickup' | 'delivery' = 'pickup';
+  paymentMethod: 'transfer' | 'cash' = 'transfer';
 
-    customerName = '';
-    customerPhone = '';
-    address = '';
+  customerName = '';
+  customerPhone = '';
+  address = '';
 
-    constructor(private shopService: ShopService, private router: Router) {
-        this.cart$ = this.shopService.getCart();
-    }
+  constructor(private shopService: ShopService, private router: Router) {
+    this.cart$ = this.shopService.getCart();
+  }
 
-    getTotal(): number {
-        let total = 0;
-        this.cart$.subscribe(items => {
-            total = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-        }).unsubscribe();
-        return total;
-    }
+  getTotal(): number {
+    let total = 0;
+    this.cart$.subscribe(items => {
+      total = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    }).unsubscribe();
+    return total;
+  }
 
-    isValid(): boolean {
-        if (!this.customerName || !this.customerPhone) return false;
-        if (this.deliveryMethod === 'delivery' && !this.address) return false;
-        return true;
-    }
+  isValid(): boolean {
+    if (!this.customerName || !this.customerPhone) return false;
+    if (this.deliveryMethod === 'delivery' && !this.address) return false;
+    return true;
+  }
 
-    confirmOrder() {
-        // In real app, call service to create order
-        // Simulate ID creation
-        const orderId = 'ORD-' + Math.floor(Math.random() * 10000);
-        this.router.navigate(['/shop/status', orderId]);
-    }
+  confirmOrder() {
+    // In real app, call service to create order
+    // Simulate ID creation
+    const orderId = 'ORD-' + Math.floor(Math.random() * 10000);
+    this.router.navigate(['/shop/status', orderId]);
+  }
 }

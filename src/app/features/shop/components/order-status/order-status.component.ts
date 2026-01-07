@@ -1,9 +1,13 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { LucideIconComponent } from '../../../../shared/components/lucide-icon.component';
 
 @Component({
-    selector: 'app-order-status',
-    template: `
+  selector: 'app-order-status',
+  standalone: true,
+  imports: [CommonModule, RouterModule, LucideIconComponent],
+  template: `
     <div class="min-h-screen bg-[#121212] pt-24 px-4 pb-12 font-sans text-white flex flex-col items-center">
       <div class="max-w-md w-full bg-[#1a1a1a] rounded-3xl p-8 border border-white/5 text-center relative overflow-hidden">
         
@@ -50,7 +54,7 @@ import { ActivatedRoute } from '@angular/router';
       </div>
     </div>
   `,
-    styles: [`
+  styles: [`
     @keyframes moving-bar {
       0% { transform: translateX(-100%); }
       100% { transform: translateX(100%); }
@@ -61,11 +65,11 @@ import { ActivatedRoute } from '@angular/router';
   `]
 })
 export class OrderStatusComponent implements OnInit {
-    orderId: string | null = '';
+  orderId: string | null = '';
 
-    constructor(private route: ActivatedRoute) { }
+  constructor(private route: ActivatedRoute) { }
 
-    ngOnInit() {
-        this.orderId = this.route.snapshot.paramMap.get('id');
-    }
+  ngOnInit() {
+    this.orderId = this.route.snapshot.paramMap.get('id');
+  }
 }

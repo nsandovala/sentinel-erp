@@ -1,10 +1,19 @@
 import { Component, OnInit } from '@angular/core';
 import { ShopService } from './services/shop.service';
-import { Observable, BehaviorSubject, combineLatest } from 'rxjs';
+import { Observable, BehaviorSubject, combineLatest, of } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { LucideIconComponent } from '../../shared/components/lucide-icon.component';
+import { ProductCardComponent } from './components/product-card/product-card.component';
+import { CartWidgetComponent } from './components/cart-widget/cart-widget.component';
+import { ChatbotWidgetComponent } from './components/chatbot-widget/chatbot-widget.component';
+import { TBB_CATALOG } from '../../data/catalog.tbb';
 
 @Component({
   selector: 'app-shop',
+  standalone: true,
+  imports: [CommonModule, RouterModule, LucideIconComponent, ProductCardComponent, CartWidgetComponent, ChatbotWidgetComponent],
   template: `
     <div class="min-h-screen bg-[#121212] text-white font-sans selection:bg-[#22c55e] selection:text-black">
       <!-- Side Menu -->
@@ -17,8 +26,8 @@ import { map } from 'rxjs/operators';
           </div>
           <nav class="space-y-4">
              <a (click)="setCategory('all'); toggleMenu()" class="block text-lg font-medium hover:text-[#22c55e] cursor-pointer">Inicio</a>
-             <a (click)="setCategory('burgers'); toggleMenu()" class="block text-lg font-medium hover:text-[#22c55e] cursor-pointer">Burgers</a>
-             <a (click)="setCategory('mechadas'); toggleMenu()" class="block text-lg font-medium hover:text-[#22c55e] cursor-pointer">Mechadas</a>
+             <a (click)="setCategory('BURGERS'); toggleMenu()" class="block text-lg font-medium hover:text-[#22c55e] cursor-pointer">Burgers</a>
+             <a (click)="setCategory('MECHADAS'); toggleMenu()" class="block text-lg font-medium hover:text-[#22c55e] cursor-pointer">Mechadas</a>
              <a (click)="toggleMenu()" routerLink="/login" class="block text-lg font-medium text-gray-500 hover:text-white cursor-pointer mt-8 pt-8 border-t border-white/10">Admin Login</a>
           </nav>
         </div>
@@ -60,7 +69,7 @@ import { map } from 'rxjs/operators';
               <span class="px-3 py-1 bg-[#22c55e] text-black text-xs font-bold rounded-full mb-4 inline-block tracking-wider">NUEVO LANZAMIENTO</span>
               <h2 class="text-4xl md:text-6xl font-black mb-4 leading-tight">Vader <br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-[#22c55e] to-emerald-600">Burger</span></h2>
               <p class="text-gray-300 text-sm md:text-lg mb-6 leading-relaxed">La fuerza está con ella. Carne con receta exclusiva de la abuela, salsa verde y condimentos oscuros.</p>
-              <button (click)="setCategory('burgers')" class="px-8 py-3 bg-[#22c55e] text-black font-bold rounded-full hover:bg-[#1ea850] transition-all transform hover:scale-105 shadow-lg shadow-[#22c55e]/20">
+              <button (click)="setCategory('BURGERS')" class="px-8 py-3 bg-[#22c55e] text-black font-bold rounded-full hover:bg-[#1ea850] transition-all transform hover:scale-105 shadow-lg shadow-[#22c55e]/20">
                 Ver Menú
               </button>
             </div>
@@ -84,10 +93,19 @@ import { map } from 'rxjs/operators';
 
       <!-- Product Grid -->
       <section class="px-4 pb-24">
-        <div class="container mx-auto">
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <app-product-card *ngFor="let product of products$ | async" [product]="product"></app-product-card>
-          </div>
+        <!-- Product Grid -->
+        <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-24">
+          @if ((filteredProducts$ | async)?.length === 0) {
+              <div class="col-span-full flex flex-col items-center justify-center py-20 text-gray-500">
+                  <lucide-icon name="search" class="w-16 h-16 mb-4 opacity-50"></lucide-icon>
+                  <p class="text-xl">No se encontraron productos.</p>
+                  <p class="text-sm">Intenta seleccionar otra categoría.</p>
+              </div>
+          }
+
+          @for (product of filteredProducts$ | async; track product.id) {
+            <app-product-card [product]="product"></app-product-card>
+          }
         </div>
       </section>
 
@@ -103,10 +121,10 @@ import { map } from 'rxjs/operators';
 export class ShopComponent implements OnInit {
   categories = [
     { id: 'all', name: 'Todo' },
-    { id: 'burgers', name: 'Burgers' },
-    { id: 'mechadas', name: 'Mechadas' },
-    { id: 'sides', name: 'Papas Legend' },
-    { id: 'drinks', name: 'Bebidas' }
+    { id: 'BURGERS', name: 'Burgers' },
+    { id: 'MECHADAS', name: 'Mechadas' },
+    { id: 'PAPAS', name: 'Papas Legend' },
+    { id: 'BEBIDAS', name: 'Bebidas' }
   ];
 
   isMenuOpen = false;
@@ -121,9 +139,12 @@ export class ShopComponent implements OnInit {
   constructor(private shopService: ShopService) {
     this.cartCount$ = this.shopService.getCartCount();
 
+    // Direct injection of TBB_CATALOG to bypass service timing issues
+    const products$ = of(TBB_CATALOG);
+
     // Combine products with category filter
     this.products$ = combineLatest([
-      this.shopService.getProducts(),
+      products$,
       this.category$
     ]).pipe(
       map(([products, category]) => {

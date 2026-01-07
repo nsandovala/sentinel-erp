@@ -1,9 +1,15 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { Product, ShopService } from '../../services/shop.service';
+import { CommonModule } from '@angular/common';
+import { LucideIconComponent } from '../../../../shared/components/lucide-icon.component';
+
+import { ShopService } from '../../services/shop.service';
+import { Product } from '../../../../data/catalog.tbb';
 
 @Component({
-    selector: 'app-product-card',
-    template: `
+  selector: 'app-product-card',
+  standalone: true,
+  imports: [CommonModule, LucideIconComponent],
+  template: `
     <div class="group relative bg-[#1a1a1a] rounded-2xl overflow-hidden border border-white/5 hover:border-[#22c55e]/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(34,197,94,0.1)]">
       <!-- Image -->
       <div class="relative h-48 overflow-hidden">
@@ -30,11 +36,11 @@ import { Product, ShopService } from '../../services/shop.service';
   `
 })
 export class ProductCardComponent {
-    @Input() product!: Product;
+  @Input() product!: Product;
 
-    constructor(private shopService: ShopService) { }
+  constructor(private shopService: ShopService) { }
 
-    addToCart() {
-        this.shopService.addToCart(this.product);
-    }
+  addToCart() {
+    this.shopService.addToCart(this.product);
+  }
 }

@@ -2,9 +2,12 @@
     "name": "sentinel-erp",
     "version": "1.0.0",
     "scripts": {
-        "ng": "ng",
-        "start": "ng serve",
+        "start": "ng serve --host localhost --port 4200",
+        "start:any": "ng serve --host localhost --port 0",
         "build": "ng build",
+        "build:prod": "ng build --configuration production",
+        "preview": "npx http-server ./dist/sentinel-erp -p 4173 -c-1 --cors",
+        "lint": "ng lint",
         "test": "ng test"
     },
     "private": true,
@@ -19,16 +22,16 @@
         "@angular/platform-browser-dynamic": "^18.0.0",
         "@angular/router": "^18.0.0",
         "firebase": "^10.0.0",
+        "lucide-angular": "^0.390.0",
         "rxjs": "~7.8.0",
         "tslib": "^2.3.0",
-        "zone.js": "~0.14.0",
-        "lucide-angular": "^0.390.0"
+        "zone.js": "~0.14.0"
     },
     "devDependencies": {
         "@angular-devkit/build-angular": "^18.0.0",
         "@angular/cli": "^18.0.0",
         "@angular/compiler-cli": "^18.0.0",
-        "typescript": "~5.4.0",
-        "tailwindcss": "^3.0.0"
+        "tailwindcss": "^3.0.0",
+        "typescript": "~5.4.0"
     }
 }
