@@ -6,9 +6,9 @@ import { ShopService } from './services/shop.service';
 import { LucideAngularModule, ShoppingCart, MessageCircle, X, Plus, Minus, Search, Menu, CheckCircle, Truck, CreditCard, Wallet, ChevronRight } from 'lucide-angular';
 
 const routes: Routes = [
-    { path: '', component: ShopComponent },
-    { path: 'checkout', component: CheckoutComponent },
-    { path: 'status/:id', component: OrderStatusComponent }
+    { path: '', loadComponent: () => import('./shop.component').then(m => m.ShopComponent) },
+    { path: 'checkout', loadComponent: () => import('./components/checkout/checkout.component').then(m => m.CheckoutComponent) },
+    { path: 'status/:id', loadComponent: () => import('./components/order-status/order-status.component').then(m => m.OrderStatusComponent) }
 ];
 
 @NgModule({
