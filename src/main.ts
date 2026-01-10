@@ -29,7 +29,7 @@ const routes: Routes = [
         path: 'shop',
         component: PublicLayoutComponent,
         children: [
-            { path: '', loadComponent: () => import('./app/features/shop/shop.component').then(m => m.ShopComponent) }
+            { path: '', loadChildren: () => import('./app/features/shop/shop.module').then(m => m.ShopModule) }
         ]
     },
     {
