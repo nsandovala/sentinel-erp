@@ -11,4 +11,8 @@ import { RouterOutlet } from '@angular/router';
     </div>
   `
 })
-export class PublicLayoutComponent { }
+export class PublicLayoutComponent { 
+  constructor() {
+    console.log('PublicLayoutComponent loaded');
+  }
+}
