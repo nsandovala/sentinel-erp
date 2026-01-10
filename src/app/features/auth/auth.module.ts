@@ -6,7 +6,7 @@ import { AdminLoginComponent } from './login.component';
 import { LucideAngularModule, Lock, ArrowRight } from 'lucide-angular';
 
 const routes: Routes = [
-    { path: 'login', component: AdminLoginComponent }
+    { path: '', component: AdminLoginComponent }
 ];
 
 @NgModule({

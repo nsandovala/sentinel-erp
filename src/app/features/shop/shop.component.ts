@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ShopService } from './services/shop.service';
-import { Observable, BehaviorSubject, combineLatest, of } from 'rxjs';
+import { Observable, BehaviorSubject, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -8,7 +8,6 @@ import { LucideIconComponent } from '../../shared/components/lucide-icon.compone
 import { ProductCardComponent } from './components/product-card/product-card.component';
 import { CartWidgetComponent } from './components/cart-widget/cart-widget.component';
 import { ChatbotWidgetComponent } from './components/chatbot-widget/chatbot-widget.component';
-import { TBB_CATALOG } from '../../data/catalog.tbb';
 
 @Component({
   selector: 'app-shop',
@@ -133,17 +132,18 @@ export class ShopComponent implements OnInit {
   selectedCategory = 'all';
 
   isCartOpen = false;
-  products$: Observable<any[]>;
+  filteredProducts$: Observable<any[]>;
   cartCount$: Observable<number>;
 
   constructor(private shopService: ShopService) {
+    console.log('ShopComponent Initialized - Loading Catalog...');
     this.cartCount$ = this.shopService.getCartCount();
 
-    // Direct injection of TBB_CATALOG to bypass service timing issues
-    const products$ = of(TBB_CATALOG);
+    // Use ShopService to get products
+    const products$ = this.shopService.getProducts();
 
     // Combine products with category filter
-    this.products$ = combineLatest([
+    this.filteredProducts$ = combineLatest([
       products$,
       this.category$
     ]).pipe(

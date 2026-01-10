@@ -2,11 +2,13 @@ import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
-    selector: 'app-root',
+    selector: 'app-public-layout',
     standalone: true,
     imports: [RouterOutlet],
     template: `
-    <router-outlet></router-outlet>
+    <div class="min-h-screen bg-[#121212]">
+        <router-outlet></router-outlet>
+    </div>
   `
 })
-export class AppComponent { }
+export class PublicLayoutComponent { }

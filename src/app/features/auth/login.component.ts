@@ -62,7 +62,7 @@ export class AdminLoginComponent {
         // Hardcoded credentials as requested
         if (this.username === 'nandres.sandoval@gmail.com' && this.password === '1973') {
             localStorage.setItem('admin_token', 'valid');
-            this.router.navigate(['/dashboard']);
+            this.router.navigate(['/admin/dashboard']);
         } else {
             this.error = 'Credenciales inválidas. Acceso denegado.';
         }

@@ -14,19 +14,47 @@ import { DashboardComponent } from './app/features/dashboard/dashboard.component
 import { SalesComponent } from './app/features/sales/sales.component';
 import { InventoryComponent } from './app/features/inventory/inventory.component';
 import { RecipesComponent } from './app/features/recipes/recipes.component';
+import { AdminLayoutComponent } from './app/layouts/admin-layout.component';
+import { PublicLayoutComponent } from './app/layouts/public-layout.component';
 
 // Guards
 import { AuthGuard } from './app/core/guards/auth.guard';
 
 const routes: Routes = [
-    { path: '', redirectTo: 'shop', pathMatch: 'full' }, // Home is Shop
-    { path: 'login', redirectTo: 'auth/login', pathMatch: 'full' },
-    { path: 'auth', loadChildren: () => import('./app/features/auth/auth.module').then(m => m.AuthModule) },
-    { path: 'dashboard', component: DashboardComponent, canActivate: [AuthGuard] },
-    { path: 'sales', component: SalesComponent, canActivate: [AuthGuard] },
-    { path: 'inventory', component: InventoryComponent, canActivate: [AuthGuard] },
-    { path: 'recipes', component: RecipesComponent, canActivate: [AuthGuard] },
-    { path: 'shop', loadChildren: () => import('./app/features/shop/shop.module').then(m => m.ShopModule) },
+    { path: '', redirectTo: 'shop', pathMatch: 'full' },
+    { path: 'login', redirectTo: 'admin/login', pathMatch: 'full' },
+    { path: 'auth', redirectTo: 'admin/login', pathMatch: 'full' },
+
+    {
+        path: '',
+        component: PublicLayoutComponent,
+        children: [
+            { path: 'shop', loadChildren: () => import('./app/features/shop/shop.module').then(m => m.ShopModule) }
+        ]
+    },
+    {
+        path: 'admin',
+        children: [
+            { path: 'login', loadChildren: () => import('./app/features/auth/auth.module').then(m => m.AuthModule) },
+            {
+                path: '',
+                component: AdminLayoutComponent,
+                canActivate: [AuthGuard],
+                children: [
+                    { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+                    { path: 'dashboard', component: DashboardComponent },
+                    { path: 'sales', component: SalesComponent },
+                    { path: 'inventory', component: InventoryComponent },
+                    { path: 'recipes', component: RecipesComponent }
+                ]
+            }
+        ]
+    },
+
+    { path: 'dashboard', redirectTo: 'admin/dashboard', pathMatch: 'full' },
+    { path: 'sales', redirectTo: 'admin/sales', pathMatch: 'full' },
+    { path: 'inventory', redirectTo: 'admin/inventory', pathMatch: 'full' },
+    { path: 'recipes', redirectTo: 'admin/recipes', pathMatch: 'full' }
 ];
 
 // Firebase Config Placeholder (Replace with process.env or actual config)
