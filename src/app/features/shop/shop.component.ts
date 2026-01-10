@@ -96,9 +96,8 @@ import { ChatbotWidgetComponent } from './components/chatbot-widget/chatbot-widg
         <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-24">
           @if ((filteredProducts$ | async)?.length === 0) {
               <div class="col-span-full flex flex-col items-center justify-center py-20 text-gray-500">
-                  <lucide-icon name="search" class="w-16 h-16 mb-4 opacity-50"></lucide-icon>
-                  <p class="text-xl">No se encontraron productos.</p>
-                  <p class="text-sm">Intenta seleccionar otra categoría.</p>
+                  <lucide-icon name="loader" class="w-16 h-16 mb-4 opacity-50 animate-spin"></lucide-icon>
+                  <p class="text-xl">Cargando menú…</p>
               </div>
           }
 
