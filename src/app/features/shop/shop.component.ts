@@ -8,12 +8,11 @@ import { CommonModule } from '@angular/common';
   template: `
     <div>Shop loaded</div>
   `,
-  `,
   styles: [`
     :host { display: block; }
   `]
 })
-export class ShopComponent implements OnInit {
+export default class ShopComponent implements OnInit {
   ngOnInit() { 
     console.log('ShopComponent ngOnInit');
   }
