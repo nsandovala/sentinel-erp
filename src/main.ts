@@ -26,10 +26,10 @@ const routes: Routes = [
     { path: 'auth', redirectTo: 'admin/login', pathMatch: 'full' },
 
     {
-        path: '',
+        path: 'shop',
         component: PublicLayoutComponent,
         children: [
-            { path: 'shop', loadChildren: () => import('./app/features/shop/shop.module').then(m => m.ShopModule) }
+            { path: '', loadChildren: () => import('./app/features/shop/shop.module').then(m => m.ShopModule) }
         ]
     },
     {
