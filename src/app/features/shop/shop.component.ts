@@ -77,7 +77,7 @@ import { map } from 'rxjs/operators';
               <img *ngIf="product.image" [src]="product.image" [alt]="product.name" class="w-full h-32 object-cover rounded-lg mb-4">
               <h3 class="text-lg font-bold text-white">{{ product.name }}</h3>
               <p class="text-gray-400 text-sm mb-2">{{ product.description }}</p>
-              <p class="text-[#22c55e] font-bold">${{ product.price }}</p>
+              <p class="text-[#22c55e] font-bold">{{ product.price }}</p>
             </div>
           </div>
         </div>
