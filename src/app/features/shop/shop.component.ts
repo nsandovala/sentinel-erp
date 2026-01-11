@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-shop',
   standalone: true,
-  imports: [CommonModule, RouterModule, LucideIconComponent, ProductCardComponent, CartWidgetComponent, ChatbotWidgetComponent],
+  imports: [CommonModule],
   template: `
     <div class="min-h-screen text-white font-sans selection:bg-[#22c55e] selection:text-black">
       <!-- Header -->
@@ -12,7 +12,7 @@ import { CommonModule } from '@angular/common';
         <div class="container mx-auto px-4 h-16 flex items-center justify-between">
           <div class="flex items-center gap-4">
             <button class="p-2 hover:bg-white/5 rounded-full transition-colors">
-              <lucide-icon name="menu" class="w-6 h-6"></lucide-icon>
+              <span>Menu</span>
             </button>
             <div class="flex flex-col cursor-pointer">
               <h1 class="text-xl font-bold tracking-tight text-[#22c55e] font-display">THE BEST BURGER</h1>
@@ -22,7 +22,7 @@ import { CommonModule } from '@angular/common';
           
           <div class="flex items-center gap-4">
             <button class="p-2 hover:bg-white/5 rounded-full transition-colors relative">
-              <lucide-icon name="shopping-cart" class="w-6 h-6"></lucide-icon>
+              <span>Cart</span>
               <span class="absolute top-0 right-0 w-4 h-4 bg-[#22c55e] text-black text-[10px] font-bold flex items-center justify-center rounded-full animate-bounce">
                 0
               </span>
