@@ -1,5 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ShopService } from './services/shop.service';
+import { Observable, BehaviorSubject, combineLatest } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 @Component({
   selector: 'app-shop',
@@ -50,15 +53,31 @@ import { CommonModule } from '@angular/common';
         </div>
       </section>
 
+      <!-- Categories -->
+      <section class="px-4 mb-8">
+        <div class="container mx-auto">
+          <div class="flex gap-3 justify-center flex-wrap">
+            <button *ngFor="let cat of categories" 
+                    (click)="setCategory(cat.id)"
+                    [class.bg-[#22c55e]]="selectedCategory === cat.id"
+                    [class.text-black]="selectedCategory === cat.id"
+                    class="px-6 py-2 rounded-full text-sm font-bold transition-all bg-[#1a1a1a] text-white hover:bg-white/10">
+              {{ cat.name }}
+            </button>
+          </div>
+        </div>
+      </section>
+
       <!-- Product Grid -->
       <section class="px-4 pb-24">
         <div class="container mx-auto">
           <h2 class="text-2xl font-bold mb-6">Nuestros Productos</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="bg-[#1a1a1a] rounded-2xl p-5 border border-white/5">
-              <h3 class="text-lg font-bold text-white">Producto de Ejemplo</h3>
-              <p class="text-gray-400 text-sm">Descripción del producto.</p>
-              <p class="text-[#22c55e] font-bold">$5.990</p>
+            <div *ngFor="let product of filteredProducts$ | async" class="bg-[#1a1a1a] rounded-2xl p-5 border border-white/5">
+              <img *ngIf="product.image" [src]="product.image" [alt]="product.name" class="w-full h-32 object-cover rounded-lg mb-4">
+              <h3 class="text-lg font-bold text-white">{{ product.name }}</h3>
+              <p class="text-gray-400 text-sm mb-2">{{ product.description }}</p>
+              <p class="text-[#22c55e] font-bold">${{ product.price }}</p>
             </div>
           </div>
         </div>
@@ -70,7 +89,47 @@ import { CommonModule } from '@angular/common';
   `]
 })
 export default class ShopComponent implements OnInit {
+  categories = [
+    { id: 'all', name: 'Todo' },
+    { id: 'BURGERS', name: 'Burgers' },
+    { id: 'MECHADAS', name: 'Mechadas' },
+    { id: 'PAPAS', name: 'Papas Legend' },
+    { id: 'BEBIDAS', name: 'Bebidas' }
+  ];
+
+  isMenuOpen = false;
+
+  private category$ = new BehaviorSubject<string>('all');
+  selectedCategory = 'all';
+
+  filteredProducts$: Observable<any[]>;
+  cartCount$: Observable<number>;
+
+  constructor(private shopService: ShopService) {
+    console.log('ShopComponent Initialized - Loading Catalog...');
+    this.cartCount$ = this.shopService.getCartCount();
+
+    const products$ = this.shopService.getProducts();
+
+    this.filteredProducts$ = combineLatest([
+      products$,
+      this.category$
+    ]).pipe(
+      map(([products, category]) => {
+        if (category === 'all') return products;
+        return products.filter(p => p.category === category);
+      })
+    );
+  }
+
   ngOnInit() { 
-    console.log('ShopComponent ngOnInit');
+    this.filteredProducts$.subscribe(products => {
+      console.log(`Productos cargados: ${products.length}`);
+    });
+  }
+
+  setCategory(catId: string) {
+    this.selectedCategory = catId;
+    this.category$.next(catId);
   }
 }
