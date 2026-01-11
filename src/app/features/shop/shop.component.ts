@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { ShopService } from './services/shop.service';
 import { Observable, BehaviorSubject, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { ChatbotWidgetComponent } from './components/chatbot-widget/chatbot-widget.component';
 
 @Component({
   selector: 'app-shop',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ChatbotWidgetComponent],
   template: `
     <div class="min-h-screen text-white font-sans selection:bg-[#22c55e] selection:text-black">
       <!-- Header -->
@@ -83,6 +84,9 @@ import { map } from 'rxjs/operators';
         </div>
       </section>
     </div>
+
+    <!-- Chatbot Widget -->
+    <app-chatbot-widget></app-chatbot-widget>
   `,
   styles: [`
     :host { display: block; }
