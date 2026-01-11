@@ -2,7 +2,6 @@ import { Component, ViewChild, ElementRef, AfterViewChecked } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
-import { HeoAiService, ChatMessage } from '../../../../core/services/heo-ai.service';
 
 @Component({
   selector: 'app-chatbot-widget',
@@ -159,7 +158,7 @@ export class ChatbotWidgetComponent implements AfterViewChecked {
   userInput = '';
   isLoading = false;
 
-  messages: ChatMessage[] = [
+  messages: any[] = [
     { role: 'assistant', content: '¡Hola! Soy HEO 🤖. ¿Hambre brutal o antojo suave?' }
   ];
 
@@ -170,7 +169,7 @@ export class ChatbotWidgetComponent implements AfterViewChecked {
     'Recomiéndame lo más vendido'
   ];
 
-  constructor(private heoAi: HeoAiService) { }
+  constructor() { }
 
   toggleChat() {
     this.isOpen = !this.isOpen;
@@ -207,15 +206,17 @@ export class ChatbotWidgetComponent implements AfterViewChecked {
     this.messages.push({ role: 'user', content: userMsg });
     this.isLoading = true;
 
-    // Get AI response
-    try {
-      const response = await this.heoAi.sendMessage(this.messages);
-      this.messages.push({ role: 'assistant', content: response });
-    } catch (error) {
-      // Error handled in service, but safety fallback
-      this.messages.push({ role: 'assistant', content: 'Tu Ki es poderoso, pero mi conexión falló. Intenta de nuevo.' });
-    } finally {
+    // Simulate delay and dummy response
+    setTimeout(() => {
+      const responses = [
+        '¡Excelente elección! Te recomiendo la Vader Burger, es legendaria.',
+        'Si buscas algo suave, prueba la Burger Italianni con palta Hass.',
+        '¿Picante? La Mechada Diablo es perfecta para ti.',
+        'Nuestro bestseller es la Burger Cheddar, ¡pruébala!'
+      ];
+      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+      this.messages.push({ role: 'assistant', content: randomResponse });
       this.isLoading = false;
-    }
+    }, 1000);
   }
 }
