@@ -35,3 +35,5 @@ testem.log
 # Angular
 /.angular/
 .cache
+.vercel
+.env*.local
